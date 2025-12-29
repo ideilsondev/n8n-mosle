@@ -1,0 +1,325 @@
+{
+  "name": "WorkflowStacking",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message"
+            },
+            {
+              "name": "contact_number"
+            },
+            {
+              "name": "buffer_key"
+            },
+            {
+              "name": "channel_name"
+            },
+            {
+              "name": "set_wait",
+              "type": "number"
+            },
+            {
+              "name": "body",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        -256
+      ],
+      "id": "cc0b1cfd-6515-470f-a263-5b1d9a04b599",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.set_wait }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -96,
+        -256
+      ],
+      "id": "2b431646-578a-48e1-9240-19b9e58981ad",
+      "name": "Wait",
+      "webhookId": "ceba9042-99bb-439a-8c5e-9ca78489114b"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -144
+      ],
+      "id": "73275b40-3781-47f2-8c9b-de7f8bd7a968",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $json.buffer_key }}",
+        "messageData": "={{ $json.message }}",
+        "tail": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -256
+      ],
+      "id": "df09ded1-3420-47b1-a467-952de5a63c4b",
+      "name": "Redis Push List",
+      "credentials": {
+        "redis": {
+          "id": "93Ra0f0N72tlRpuL",
+          "name": "Redis VPS Data 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "adaa21ae-01c2-47b8-9957-039231d03023",
+              "leftValue": "={{ $json.messages.last()  }}",
+              "rightValue": "={{ $('Execute Workflow').item.json.message }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        -256
+      ],
+      "id": "d5b091e3-a64c-424e-acd1-f351aa451e55",
+      "name": "If not last"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "messages",
+        "key": "={{ $json.buffer_key }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -256
+      ],
+      "id": "805215f8-26a2-4a2b-ad93-cfb35070426e",
+      "name": "Redis Get Message",
+      "credentials": {
+        "redis": {
+          "id": "93Ra0f0N72tlRpuL",
+          "name": "Redis VPS Data 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f9fc0a79-049a-4542-a33a-5de6edc23a9d",
+              "name": "messages",
+              "value": "={{ $json.messages.join(' ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        -352
+      ],
+      "id": "da2d19b7-08ab-40b7-bc47-c0b68fd9aae7",
+      "name": "serializer"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Execute Workflow').item.json.buffer_key }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        912,
+        -352
+      ],
+      "id": "40bc0050-0312-4090-ad00-1eaaa1873d06",
+      "name": "Redis Delete",
+      "credentials": {
+        "redis": {
+          "id": "93Ra0f0N72tlRpuL",
+          "name": "Redis VPS Data 1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b312e4e5-2f9d-4a8f-bef8-03686494a7f7",
+              "name": "data.messages",
+              "value": "={{ $('serializer').item.json.messages }}",
+              "type": "string"
+            },
+            {
+              "id": "39307741-ccae-4ba2-8a5f-f2ac49fc536b",
+              "name": "data.contact_number",
+              "value": "={{ $('Execute Workflow').item.json.contact_number }}",
+              "type": "string"
+            },
+            {
+              "id": "d5d8d9dc-a7d3-472b-8741-76f97e6ad440",
+              "name": "data.channel_name",
+              "value": "={{ $('Execute Workflow').item.json.channel_name }}",
+              "type": "string"
+            },
+            {
+              "id": "0ec1f118-ddb0-411f-854c-7a0a82890ccc",
+              "name": "body",
+              "value": "={{ $('Execute Workflow').item.json.body }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        -352
+      ],
+      "id": "a21695fd-f839-4a0e-a734-251521da7797",
+      "name": "output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Redis Push List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Redis Get Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Push List": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not last": {
+      "main": [
+        [
+          {
+            "node": "serializer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Get Message": {
+      "main": [
+        [
+          {
+            "node": "If not last",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "serializer": {
+      "main": [
+        [
+          {
+            "node": "Redis Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Delete": {
+      "main": [
+        [
+          {
+            "node": "output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a9d31f86-7c76-4778-8eb1-27b9ea05a9ab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c21bda658d8de0a357c23f48aef71d2b17a5a0daeeeecdda94c362c067795d43"
+  },
+  "id": "e7rHHCrgc9qxxMrM",
+  "tags": []
+}
